@@ -368,6 +368,9 @@
 
   <!-- Reset -->
   <button class="reset-btn" id="resetBtn">Reset</button>
+
+  <!-- Debug Panel -->
+  <div id="debugPanel" style="margin-top:16px;padding:12px;background:#1a1a1a;border:1px solid #333;border-radius:8px;font-family:monospace;font-size:0.7rem;color:#0f0;max-height:200px;overflow-y:auto;word-break:break-all;"></div>
 </main>
 
 <script>
@@ -426,31 +429,61 @@
   const resetBtn = document.getElementById('resetBtn');
   const toggleBtns = document.querySelectorAll('.band-toggle button');
 
+  // ── Debug ──
+  const debugEl = document.getElementById('debugPanel');
+  function dbg(msg) {
+    const t = new Date().toLocaleTimeString();
+    debugEl.innerHTML += `<div>[${t}] ${msg}</div>`;
+    debugEl.scrollTop = debugEl.scrollHeight;
+  }
+
   // ── Camera ──
+  dbg('Page loaded. UA: ' + navigator.userAgent.slice(0, 80));
+  dbg('Secure context: ' + window.isSecureContext);
+  dbg('mediaDevices: ' + !!navigator.mediaDevices);
+  dbg('getUserMedia: ' + !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+
   async function startCamera() {
+    dbg('startCamera() called');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      dbg('ERROR: getUserMedia not available');
+      placeholder.querySelector('span').textContent = 'Camera API not available';
+      return;
+    }
     try {
+      dbg('Requesting camera (environment)...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 960 } }
       });
+      dbg('Got stream: ' + stream.getTracks().map(t => t.kind + ':' + t.label).join(', '));
       video.srcObject = stream;
+      video.onloadedmetadata = () => dbg('Video metadata loaded: ' + video.videoWidth + 'x' + video.videoHeight);
+      video.onplay = () => dbg('Video playing');
       placeholder.style.display = 'none';
       overlay.style.display = 'block';
+      dbg('Camera started OK');
     } catch (err) {
-      // Try without facingMode constraint
+      dbg('First attempt failed: ' + err.name + ': ' + err.message);
       try {
+        dbg('Retrying with basic constraints...');
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        dbg('Got stream (fallback): ' + stream.getTracks().map(t => t.kind + ':' + t.label).join(', '));
         video.srcObject = stream;
+        video.onloadedmetadata = () => dbg('Video metadata loaded: ' + video.videoWidth + 'x' + video.videoHeight);
+        video.onplay = () => dbg('Video playing');
         placeholder.style.display = 'none';
         overlay.style.display = 'block';
+        dbg('Camera started OK (fallback)');
       } catch (e) {
+        dbg('BOTH attempts failed: ' + e.name + ': ' + e.message);
         placeholder.querySelector('span').textContent = 'Camera not available \u2014 you can still pick colors below';
       }
     }
   }
 
-  placeholder.addEventListener('click', startCamera);
-  // Auto-start on desktop
-  if (!/Mobi|Android/i.test(navigator.userAgent)) startCamera();
+  placeholder.addEventListener('click', () => { dbg('Placeholder tapped'); startCamera(); });
+  // Auto-start on all devices
+  startCamera();
 
   // ── Band type toggle ──
   toggleBtns.forEach(btn => {
