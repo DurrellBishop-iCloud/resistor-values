@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Resistor Value Reader</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --surface2: #0f3460;
+    --accent: #e94560;
+    --text: #eee;
+    --text-dim: #999;
+    --radius: 12px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  header {
+    text-align: center;
+    padding: 16px 16px 8px;
+  }
+  header h1 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  header p {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  main {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 0 12px 24px;
+  }
+
+  /* Camera Section */
+  .camera-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: #000;
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .camera-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .camera-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  /* Dark overlay with clear strip */
+  .overlay-top, .overlay-bottom {
+    position: absolute;
+    left: 0; right: 0;
+    background: rgba(0, 0, 0, 0.55);
+  }
+  .overlay-top { top: 0; height: 42%; }
+  .overlay-bottom { bottom: 0; height: 42%; }
+
+  .overlay-left, .overlay-right {
+    position: absolute;
+    top: 42%;
+    height: 16%;
+    background: rgba(0, 0, 0, 0.55);
+  }
+  .overlay-left { left: 0; width: 10%; }
+  .overlay-right { right: 0; width: 10%; }
+
+  /* Guide strip */
+  .guide-strip {
+    position: absolute;
+    top: 42%;
+    left: 10%;
+    right: 10%;
+    height: 16%;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 6px;
+  }
+
+  .guide-strip .corner {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-color: #fff;
+    border-style: solid;
+  }
+  .corner.tl { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+  .corner.tr { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+  .corner.bl { bottom: -2px; left: -2px; border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+  .corner.br { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+
+  .guide-text {
+    position: absolute;
+    bottom: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.7);
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .camera-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-dim);
+    gap: 8px;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 20px;
+  }
+  .camera-placeholder svg {
+    width: 48px;
+    height: 48px;
+    opacity: 0.5;
+  }
+
+  /* Band Type Toggle */
+  .band-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 4px;
+  }
+  .band-toggle button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .band-toggle button.active {
+    background: var(--surface2);
+    color: #fff;
+  }
+
+  /* Band Selectors */
+  .band-selectors {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .band-row {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+  }
+  .band-row-label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .band-row-label .band-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  .color-circles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .color-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .color-circle:active {
+    transform: scale(0.9);
+  }
+  .color-circle.selected {
+    border-color: #fff;
+    box-shadow: 0 0 0 2px var(--accent), 0 2px 8px rgba(233,69,96,0.4);
+    transform: scale(1.1);
+  }
+  .color-circle .color-label {
+    display: none;
+    position: absolute;
+    bottom: -18px;
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .color-circle.selected .color-label {
+    display: block;
+  }
+
+  /* None/no-band circle */
+  .color-circle.none-band {
+    border: 3px dashed var(--text-dim);
+    background: transparent !important;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+  }
+
+  /* Resistor Diagram */
+  .resistor-diagram {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 70px;
+  }
+
+  .resistor-svg {
+    width: 100%;
+    max-width: 320px;
+    height: 60px;
+  }
+
+  /* Result Display */
+  .result-display {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 16px;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+  }
+  .result-display.has-value {
+    border: 1px solid var(--surface2);
+  }
+  .result-main {
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .result-raw {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+  }
+  .result-placeholder {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+
+  /* Reset Button */
+  .reset-btn {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .reset-btn:active {
+    background: var(--surface2);
+    transform: scale(0.98);
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Resistor Value Reader</h1>
+  <p>Line up resistor, pick the band colors</p>
+</header>
+
+<main>
+  <!-- Camera Feed -->
+  <div class="camera-container">
+    <video id="cameraFeed" autoplay playsinline muted></video>
+    <div class="camera-placeholder" id="cameraPlaceholder">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+      <span>Tap to start camera</span>
+    </div>
+    <div class="camera-overlay" id="cameraOverlay" style="display:none">
+      <div class="overlay-top"></div>
+      <div class="overlay-bottom"></div>
+      <div class="overlay-left"></div>
+      <div class="overlay-right"></div>
+      <div class="guide-strip">
+        <div class="corner tl"></div>
+        <div class="corner tr"></div>
+        <div class="corner bl"></div>
+        <div class="corner br"></div>
+        <span class="guide-text">Line up resistor here</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Band Type Toggle -->
+  <div class="band-toggle">
+    <button class="active" data-bands="4">4-Band</button>
+    <button data-bands="5">5-Band</button>
+  </div>
+
+  <!-- Band Color Selectors -->
+  <div class="band-selectors" id="bandSelectors"></div>
+
+  <!-- Resistor Diagram Preview -->
+  <div class="resistor-diagram" id="resistorDiagram"></div>
+
+  <!-- Result Display -->
+  <div class="result-display" id="resultDisplay">
+    <span class="result-placeholder">Select band colors to see the value</span>
+  </div>
+
+  <!-- Reset -->
+  <button class="reset-btn" id="resetBtn">Reset</button>
+</main>
+
+<script>
+(function() {
+  'use strict';
+
+  // ── Color definitions ──
+  const DIGIT_COLORS = [
+    { name: 'Black',  value: 0, bg: '#111',    text: '#fff' },
+    { name: 'Brown',  value: 1, bg: '#8B4513', text: '#fff' },
+    { name: 'Red',    value: 2, bg: '#e53935', text: '#fff' },
+    { name: 'Orange', value: 3, bg: '#FF8C00', text: '#000' },
+    { name: 'Yellow', value: 4, bg: '#FFD600', text: '#000' },
+    { name: 'Green',  value: 5, bg: '#43A047', text: '#fff' },
+    { name: 'Blue',   value: 6, bg: '#1E88E5', text: '#fff' },
+    { name: 'Violet', value: 7, bg: '#8E24AA', text: '#fff' },
+    { name: 'Grey',   value: 8, bg: '#757575', text: '#fff' },
+    { name: 'White',  value: 9, bg: '#f5f5f5', text: '#000' },
+  ];
+
+  const MULTIPLIER_COLORS = [
+    { name: 'Black',  mult: 1,        bg: '#111',    text: '#fff', label: '1 \u03A9' },
+    { name: 'Brown',  mult: 10,       bg: '#8B4513', text: '#fff', label: '10 \u03A9' },
+    { name: 'Red',    mult: 100,      bg: '#e53935', text: '#fff', label: '100 \u03A9' },
+    { name: 'Orange', mult: 1e3,      bg: '#FF8C00', text: '#000', label: '1 k\u03A9' },
+    { name: 'Yellow', mult: 1e4,      bg: '#FFD600', text: '#000', label: '10 k\u03A9' },
+    { name: 'Green',  mult: 1e5,      bg: '#43A047', text: '#fff', label: '100 k\u03A9' },
+    { name: 'Blue',   mult: 1e6,      bg: '#1E88E5', text: '#fff', label: '1 M\u03A9' },
+    { name: 'Violet', mult: 1e7,      bg: '#8E24AA', text: '#fff', label: '10 M\u03A9' },
+    { name: 'Gold',   mult: 0.1,      bg: '#CFB53B', text: '#000', label: '0.1 \u03A9' },
+    { name: 'Silver', mult: 0.01,     bg: '#C0C0C0', text: '#000', label: '0.01 \u03A9' },
+  ];
+
+  const TOLERANCE_COLORS = [
+    { name: 'Brown',  tol: 1,    bg: '#8B4513', text: '#fff', label: '\u00B11%' },
+    { name: 'Red',    tol: 2,    bg: '#e53935', text: '#fff', label: '\u00B12%' },
+    { name: 'Green',  tol: 0.5,  bg: '#43A047', text: '#fff', label: '\u00B10.5%' },
+    { name: 'Blue',   tol: 0.25, bg: '#1E88E5', text: '#fff', label: '\u00B10.25%' },
+    { name: 'Violet', tol: 0.1,  bg: '#8E24AA', text: '#fff', label: '\u00B10.1%' },
+    { name: 'Gold',   tol: 5,    bg: '#CFB53B', text: '#000', label: '\u00B15%' },
+    { name: 'Silver', tol: 10,   bg: '#C0C0C0', text: '#000', label: '\u00B110%' },
+    { name: 'None',   tol: 20,   bg: null,      text: '#999', label: '\u00B120%' },
+  ];
+
+  // ── State ──
+  let bandCount = 4;
+  let selections = {}; // { band0: index, band1: index, ... }
+
+  // ── DOM refs ──
+  const video = document.getElementById('cameraFeed');
+  const placeholder = document.getElementById('cameraPlaceholder');
+  const overlay = document.getElementById('cameraOverlay');
+  const selectorsEl = document.getElementById('bandSelectors');
+  const diagramEl = document.getElementById('resistorDiagram');
+  const resultEl = document.getElementById('resultDisplay');
+  const resetBtn = document.getElementById('resetBtn');
+  const toggleBtns = document.querySelectorAll('.band-toggle button');
+
+  // ── Camera ──
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 960 } }
+      });
+      video.srcObject = stream;
+      placeholder.style.display = 'none';
+      overlay.style.display = 'block';
+    } catch (err) {
+      // Try without facingMode constraint
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        placeholder.style.display = 'none';
+        overlay.style.display = 'block';
+      } catch (e) {
+        placeholder.querySelector('span').textContent = 'Camera not available \u2014 you can still pick colors below';
+      }
+    }
+  }
+
+  placeholder.addEventListener('click', startCamera);
+  // Auto-start on desktop
+  if (!/Mobi|Android/i.test(navigator.userAgent)) startCamera();
+
+  // ── Band type toggle ──
+  toggleBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      toggleBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      bandCount = parseInt(btn.dataset.bands);
+      selections = {};
+      renderSelectors();
+      updateResult();
+    });
+  });
+
+  // ── Build band selector rows ──
+  function getBandConfig() {
+    if (bandCount === 4) {
+      return [
+        { key: 'band0', label: 'Band 1 \u2014 1st Digit',   type: 'digit' },
+        { key: 'band1', label: 'Band 2 \u2014 2nd Digit',   type: 'digit' },
+        { key: 'band2', label: 'Band 3 \u2014 Multiplier',  type: 'multiplier' },
+        { key: 'band3', label: 'Band 4 \u2014 Tolerance',   type: 'tolerance' },
+      ];
+    }
+    return [
+      { key: 'band0', label: 'Band 1 \u2014 1st Digit',   type: 'digit' },
+      { key: 'band1', label: 'Band 2 \u2014 2nd Digit',   type: 'digit' },
+      { key: 'band2', label: 'Band 3 \u2014 3rd Digit',   type: 'digit' },
+      { key: 'band3', label: 'Band 4 \u2014 Multiplier',  type: 'multiplier' },
+      { key: 'band4', label: 'Band 5 \u2014 Tolerance',   type: 'tolerance' },
+    ];
+  }
+
+  function getColorsForType(type) {
+    if (type === 'digit')      return DIGIT_COLORS;
+    if (type === 'multiplier') return MULTIPLIER_COLORS;
+    return TOLERANCE_COLORS;
+  }
+
+  function renderSelectors() {
+    const config = getBandConfig();
+    selectorsEl.innerHTML = '';
+
+    config.forEach(band => {
+      const row = document.createElement('div');
+      row.className = 'band-row';
+
+      const selectedColor = selections[band.key] !== undefined
+        ? getColorsForType(band.type)[selections[band.key]]
+        : null;
+      const indicatorBg = selectedColor ? (selectedColor.bg || 'transparent') : 'transparent';
+
+      row.innerHTML = `<div class="band-row-label">
+        <span class="band-indicator" style="background:${indicatorBg};${selectedColor ? 'border-color:' + indicatorBg : ''}"></span>
+        ${band.label}
+      </div>`;
+
+      const circlesDiv = document.createElement('div');
+      circlesDiv.className = 'color-circles';
+
+      const colors = getColorsForType(band.type);
+      colors.forEach((color, i) => {
+        const circle = document.createElement('button');
+        circle.className = 'color-circle';
+        if (selections[band.key] === i) circle.classList.add('selected');
+
+        if (color.bg === null) {
+          // "None" tolerance
+          circle.classList.add('none-band');
+          circle.textContent = '\u2205';
+        } else {
+          circle.style.background = color.bg;
+        }
+
+        const labelEl = document.createElement('span');
+        labelEl.className = 'color-label';
+        if (band.type === 'digit') {
+          labelEl.textContent = color.value;
+        } else if (band.type === 'multiplier') {
+          labelEl.textContent = color.label;
+        } else {
+          labelEl.textContent = color.label;
+        }
+        circle.appendChild(labelEl);
+
+        circle.setAttribute('aria-label', `${color.name}${band.type === 'digit' ? ' (' + color.value + ')' : ''}`);
+        circle.addEventListener('click', () => {
+          selections[band.key] = i;
+          renderSelectors();
+          updateResult();
+        });
+
+        circlesDiv.appendChild(circle);
+      });
+
+      row.appendChild(circlesDiv);
+      selectorsEl.appendChild(row);
+    });
+  }
+
+  // ── Resistor Diagram ──
+  function renderDiagram() {
+    const config = getBandConfig();
+    const bandColors = config.map(b => {
+      if (selections[b.key] === undefined) return '#444';
+      const c = getColorsForType(b.type)[selections[b.key]];
+      return c.bg || '#ddd';
+    });
+
+    const w = 320, h = 60;
+    const bodyX = 60, bodyW = 200, bodyH = 36, bodyY = (h - bodyH) / 2;
+    const wireY = h / 2;
+
+    let svg = `<svg class="resistor-svg" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+    // Wires
+    svg += `<line x1="0" y1="${wireY}" x2="${bodyX}" y2="${wireY}" stroke="#aaa" stroke-width="2.5"/>`;
+    svg += `<line x1="${bodyX + bodyW}" y1="${wireY}" x2="${w}" y2="${wireY}" stroke="#aaa" stroke-width="2.5"/>`;
+    // Body
+    svg += `<rect x="${bodyX}" y="${bodyY}" width="${bodyW}" height="${bodyH}" rx="6" fill="#D2B48C"/>`;
+    svg += `<rect x="${bodyX}" y="${bodyY}" width="${bodyW}" height="${bodyH}" rx="6" fill="none" stroke="#B8956A" stroke-width="1"/>`;
+
+    // Bands
+    const n = bandColors.length;
+    const bandW = 14;
+    const totalBandSpace = n * bandW;
+    const gapSpace = bodyW - 30 - totalBandSpace; // 15px padding each side
+    const gap = gapSpace / (n - 1);
+
+    bandColors.forEach((color, i) => {
+      const x = bodyX + 15 + i * (bandW + gap);
+      svg += `<rect x="${x}" y="${bodyY + 3}" width="${bandW}" height="${bodyH - 6}" rx="2" fill="${color}" stroke="rgba(0,0,0,0.2)" stroke-width="0.5"/>`;
+    });
+
+    svg += '</svg>';
+    diagramEl.innerHTML = svg;
+  }
+
+  // ── Value Calculation ──
+  function formatResistance(ohms) {
+    if (ohms >= 1e9) return (ohms / 1e9).toPrecision(3) + ' G\u03A9';
+    if (ohms >= 1e6) return (ohms / 1e6).toPrecision(3) + ' M\u03A9';
+    if (ohms >= 1e3) return (ohms / 1e3).toPrecision(3) + ' k\u03A9';
+    if (ohms >= 1)   return ohms.toPrecision(3) + ' \u03A9';
+    if (ohms >= 0.001) return (ohms * 1000).toPrecision(3) + ' m\u03A9';
+    return ohms + ' \u03A9';
+  }
+
+  function formatRaw(ohms) {
+    if (ohms >= 1) {
+      // Show integer if it's a whole number, otherwise up to 2 decimals
+      if (Number.isInteger(ohms)) return ohms.toLocaleString() + ' \u03A9';
+      return ohms.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' \u03A9';
+    }
+    return ohms + ' \u03A9';
+  }
+
+  function updateResult() {
+    renderDiagram();
+
+    const config = getBandConfig();
+    // Check all bands selected
+    const allSelected = config.every(b => selections[b.key] !== undefined);
+
+    if (!allSelected) {
+      resultEl.innerHTML = '<span class="result-placeholder">Select all band colors to see the value</span>';
+      resultEl.classList.remove('has-value');
+      return;
+    }
+
+    let digits, multIdx, tolIdx;
+    if (bandCount === 4) {
+      const d1 = DIGIT_COLORS[selections.band0].value;
+      const d2 = DIGIT_COLORS[selections.band1].value;
+      digits = d1 * 10 + d2;
+      multIdx = selections.band2;
+      tolIdx = selections.band3;
+    } else {
+      const d1 = DIGIT_COLORS[selections.band0].value;
+      const d2 = DIGIT_COLORS[selections.band1].value;
+      const d3 = DIGIT_COLORS[selections.band2].value;
+      digits = d1 * 100 + d2 * 10 + d3;
+      multIdx = selections.band3;
+      tolIdx = selections.band4;
+    }
+
+    const mult = MULTIPLIER_COLORS[multIdx].mult;
+    const tol = TOLERANCE_COLORS[tolIdx].tol;
+    const ohms = digits * mult;
+
+    const formatted = formatResistance(ohms);
+    const raw = formatRaw(ohms);
+    const tolStr = '\u00B1' + tol + '%';
+
+    resultEl.innerHTML = `
+      <div class="result-main">${formatted} ${tolStr}</div>
+      <div class="result-raw">${raw}</div>
+    `;
+    resultEl.classList.add('has-value');
+  }
+
+  // ── Reset ──
+  resetBtn.addEventListener('click', () => {
+    selections = {};
+    renderSelectors();
+    updateResult();
+  });
+
+  // ── Init ──
+  renderSelectors();
+  updateResult();
+})();
+</script>
+</body>
+</html>
