@@ -443,6 +443,41 @@
   dbg('mediaDevices: ' + !!navigator.mediaDevices);
   dbg('getUserMedia: ' + !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
 
+  async function applyMacroFocus(stream) {
+    const track = stream.getVideoTracks()[0];
+    if (!track.getCapabilities) {
+      dbg('getCapabilities not supported');
+      return;
+    }
+    const caps = track.getCapabilities();
+    dbg('Focus modes: ' + JSON.stringify(caps.focusMode || 'n/a'));
+    dbg('Focus distance: ' + JSON.stringify(caps.focusDistance || 'n/a'));
+
+    const constraints = {};
+
+    // Set manual focus with close distance for macro
+    if (caps.focusDistance) {
+      const minDist = caps.focusDistance.min;
+      // Macro: use minimum focus distance (or slightly above for safety)
+      const macroDist = Math.max(minDist, minDist + (caps.focusDistance.max - minDist) * 0.02);
+      constraints.focusMode = 'manual';
+      constraints.focusDistance = macroDist;
+      dbg('Setting macro focus: mode=manual, dist=' + macroDist.toFixed(3) + ' (min=' + minDist + ')');
+    } else if (caps.focusMode && caps.focusMode.includes('continuous')) {
+      constraints.focusMode = 'continuous';
+      dbg('No focusDistance support, using continuous AF');
+    }
+
+    if (Object.keys(constraints).length > 0) {
+      try {
+        await track.applyConstraints({ advanced: [constraints] });
+        dbg('Focus constraints applied OK');
+      } catch (e) {
+        dbg('Focus apply failed: ' + e.message);
+      }
+    }
+  }
+
   async function startCamera() {
     dbg('startCamera() called');
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -462,6 +497,7 @@
       placeholder.style.display = 'none';
       overlay.style.display = 'block';
       dbg('Camera started OK');
+      await applyMacroFocus(stream);
     } catch (err) {
       dbg('First attempt failed: ' + err.name + ': ' + err.message);
       try {
@@ -474,6 +510,7 @@
         placeholder.style.display = 'none';
         overlay.style.display = 'block';
         dbg('Camera started OK (fallback)');
+        await applyMacroFocus(stream);
       } catch (e) {
         dbg('BOTH attempts failed: ' + e.name + ': ' + e.message);
         placeholder.querySelector('span').textContent = 'Camera not available \u2014 you can still pick colors below';
