@@ -349,6 +349,9 @@
     </div>
   </div>
 
+  <!-- Lens Picker -->
+  <div class="band-toggle" id="lensPicker" style="display:none; margin-bottom:8px;"></div>
+
   <!-- Band Type Toggle -->
   <div class="band-toggle">
     <button class="active" data-bands="4">4-Band</button>
@@ -438,6 +441,10 @@
   }
 
   // ── Camera ──
+  const lensPickerEl = document.getElementById('lensPicker');
+  let currentDeviceId = null;
+  let allCameras = [];
+
   dbg('Page loaded. UA: ' + navigator.userAgent.slice(0, 80));
   dbg('Secure context: ' + window.isSecureContext);
   dbg('mediaDevices: ' + !!navigator.mediaDevices);
@@ -455,10 +462,8 @@
 
     const constraints = {};
 
-    // Set manual focus with close distance for macro
     if (caps.focusDistance) {
       const minDist = caps.focusDistance.min;
-      // Macro: use minimum focus distance (or slightly above for safety)
       const macroDist = Math.max(minDist, minDist + (caps.focusDistance.max - minDist) * 0.02);
       constraints.focusMode = 'manual';
       constraints.focusDistance = macroDist;
@@ -478,6 +483,75 @@
     }
   }
 
+  async function enumerateCameras() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      allCameras = devices.filter(d => d.kind === 'videoinput');
+      dbg('Found ' + allCameras.length + ' cameras:');
+      allCameras.forEach((c, i) => dbg('  [' + i + '] ' + (c.label || 'Camera ' + i) + ' id=' + c.deviceId.slice(0, 12) + '...'));
+
+      if (allCameras.length > 1) {
+        lensPickerEl.style.display = 'flex';
+        lensPickerEl.innerHTML = '';
+        allCameras.forEach((cam, i) => {
+          const btn = document.createElement('button');
+          // Try to give friendly names
+          const label = cam.label || ('Camera ' + i);
+          let shortLabel = label;
+          if (/ultra/i.test(label)) shortLabel = 'Ultra Wide';
+          else if (/tele/i.test(label)) shortLabel = 'Telephoto';
+          else if (/wide/i.test(label) && !/ultra/i.test(label)) shortLabel = 'Wide';
+          else if (/front/i.test(label)) shortLabel = 'Front';
+          else if (/back/i.test(label) || /rear/i.test(label) || /environment/i.test(label)) shortLabel = 'Back ' + i;
+          else shortLabel = 'Lens ' + i;
+
+          btn.textContent = shortLabel;
+          btn.title = label;
+          if (cam.deviceId === currentDeviceId) btn.classList.add('active');
+          btn.addEventListener('click', () => switchToCamera(cam.deviceId));
+          lensPickerEl.appendChild(btn);
+        });
+      }
+    } catch (e) {
+      dbg('enumerateDevices failed: ' + e.message);
+    }
+  }
+
+  function stopCurrentStream() {
+    if (video.srcObject) {
+      video.srcObject.getTracks().forEach(t => t.stop());
+      video.srcObject = null;
+    }
+  }
+
+  async function switchToCamera(deviceId) {
+    dbg('Switching to camera: ' + (deviceId ? deviceId.slice(0, 12) + '...' : 'default'));
+    stopCurrentStream();
+    currentDeviceId = deviceId;
+    try {
+      const constraints = {
+        video: {
+          deviceId: { exact: deviceId },
+          width: { ideal: 1280 },
+          height: { ideal: 960 }
+        }
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      dbg('Switched OK: ' + stream.getVideoTracks()[0].label);
+      video.srcObject = stream;
+      placeholder.style.display = 'none';
+      overlay.style.display = 'block';
+      await applyMacroFocus(stream);
+      // Update active button
+      lensPickerEl.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+      allCameras.forEach((cam, i) => {
+        if (cam.deviceId === deviceId) lensPickerEl.children[i]?.classList.add('active');
+      });
+    } catch (e) {
+      dbg('Switch failed: ' + e.name + ': ' + e.message);
+    }
+  }
+
   async function startCamera() {
     dbg('startCamera() called');
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -490,7 +564,9 @@
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 960 } }
       });
-      dbg('Got stream: ' + stream.getTracks().map(t => t.kind + ':' + t.label).join(', '));
+      const track = stream.getVideoTracks()[0];
+      currentDeviceId = track.getSettings().deviceId || null;
+      dbg('Got stream: ' + track.label + ' (id=' + (currentDeviceId || '?').slice(0, 12) + '...)');
       video.srcObject = stream;
       video.onloadedmetadata = () => dbg('Video metadata loaded: ' + video.videoWidth + 'x' + video.videoHeight);
       video.onplay = () => dbg('Video playing');
@@ -498,12 +574,15 @@
       overlay.style.display = 'block';
       dbg('Camera started OK');
       await applyMacroFocus(stream);
+      // Now enumerate all cameras (needs permission first)
+      await enumerateCameras();
     } catch (err) {
       dbg('First attempt failed: ' + err.name + ': ' + err.message);
       try {
         dbg('Retrying with basic constraints...');
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        dbg('Got stream (fallback): ' + stream.getTracks().map(t => t.kind + ':' + t.label).join(', '));
+        currentDeviceId = stream.getVideoTracks()[0].getSettings().deviceId || null;
+        dbg('Got stream (fallback): ' + stream.getVideoTracks()[0].label);
         video.srcObject = stream;
         video.onloadedmetadata = () => dbg('Video metadata loaded: ' + video.videoWidth + 'x' + video.videoHeight);
         video.onplay = () => dbg('Video playing');
@@ -511,6 +590,7 @@
         overlay.style.display = 'block';
         dbg('Camera started OK (fallback)');
         await applyMacroFocus(stream);
+        await enumerateCameras();
       } catch (e) {
         dbg('BOTH attempts failed: ' + e.name + ': ' + e.message);
         placeholder.querySelector('span').textContent = 'Camera not available \u2014 you can still pick colors below';
