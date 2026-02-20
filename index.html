@@ -569,17 +569,68 @@
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 960 } }
+      // Step 1: Get any rear camera briefly just to get permission for enumeration
+      dbg('Getting permission...');
+      const tempStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
       });
+      // Immediately enumerate now that we have permission
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      allCameras = devices.filter(d => d.kind === 'videoinput');
+      dbg('Cameras: ' + allCameras.length);
+      allCameras.forEach((c, i) => dbg('  [' + i + '] ' + (c.label || 'Cam ' + i)));
+
+      // Stop the temp stream
+      tempStream.getTracks().forEach(t => t.stop());
+
+      // Step 2: Find the ultra-wide (macro) camera
+      let macroIdx = allCameras.findIndex(c => /ultra.?wide/i.test(c.label));
+      if (macroIdx === -1) macroIdx = allCameras.findIndex(c => /0\.5/i.test(c.label));
+      let targetDeviceId = null;
+
+      if (macroIdx !== -1) {
+        targetDeviceId = allCameras[macroIdx].deviceId;
+        dbg('Found macro lens at index ' + macroIdx + ', starting directly');
+      } else {
+        // Fallback: pick first rear-facing camera
+        const rearIdx = allCameras.findIndex(c => /back|rear|environment/i.test(c.label));
+        if (rearIdx !== -1) targetDeviceId = allCameras[rearIdx].deviceId;
+        dbg('No ultra-wide found, using rear cam');
+      }
+
+      // Step 3: Open the target camera directly
+      const constraints = targetDeviceId
+        ? { video: { deviceId: { exact: targetDeviceId }, width: { ideal: 1280 }, height: { ideal: 960 } } }
+        : { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 960 } } };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       const track = stream.getVideoTracks()[0];
-      currentDeviceId = track.getSettings().deviceId || null;
-      dbg('Got: ' + track.label);
+      currentDeviceId = track.getSettings().deviceId || targetDeviceId;
+      dbg('Started on: ' + track.label);
       video.srcObject = stream;
       placeholder.style.display = 'none';
       overlay.style.display = 'block';
       await applyMacroFocus(stream);
-      await enumerateCameras();
+
+      // Build lens picker UI
+      if (allCameras.length > 1) {
+        lensPickerEl.style.display = 'flex';
+        lensPickerEl.innerHTML = '';
+        allCameras.forEach((cam, i) => {
+          const btn = document.createElement('button');
+          const label = cam.label || ('Camera ' + i);
+          if (/ultra/i.test(label)) btn.textContent = 'Macro (UW)';
+          else if (/tele/i.test(label)) btn.textContent = 'Tele';
+          else if (/wide/i.test(label) && !/ultra/i.test(label)) btn.textContent = 'Wide';
+          else if (/front/i.test(label)) btn.textContent = 'Front';
+          else btn.textContent = 'Lens ' + i;
+          btn.title = label;
+          if (cam.deviceId === currentDeviceId) btn.classList.add('active');
+          btn.addEventListener('click', () => switchToCamera(cam.deviceId));
+          lensPickerEl.appendChild(btn);
+        });
+      }
+
       startBarcodeLoop();
     } catch (err) {
       dbg('Failed: ' + err.message);
@@ -588,7 +639,6 @@
         video.srcObject = stream;
         placeholder.style.display = 'none';
         overlay.style.display = 'block';
-        await enumerateCameras();
         startBarcodeLoop();
       } catch (e) {
         placeholder.querySelector('span').textContent = 'Camera not available';
