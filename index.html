@@ -122,7 +122,6 @@
     inset: 0;
     width: 100%;
     height: 100%;
-    opacity: 0.85;
   }
 
   .camera-placeholder {
@@ -380,7 +379,10 @@
   <button class="reset-btn" id="resetBtn">Reset</button>
 
   <!-- Debug Panel -->
-  <div id="debugPanel" style="margin-top:16px;padding:12px;background:#1a1a1a;border:1px solid #333;border-radius:8px;font-family:monospace;font-size:0.7rem;color:#0f0;max-height:200px;overflow-y:auto;word-break:break-all;"></div>
+  <div style="margin-top:16px;position:relative;">
+    <button id="copyDebugBtn" style="position:absolute;top:8px;right:8px;z-index:1;padding:6px 12px;border:1px solid #555;border-radius:6px;background:#333;color:#0f0;font-family:monospace;font-size:0.65rem;cursor:pointer;">Copy</button>
+    <div id="debugPanel" style="padding:12px;padding-top:36px;background:#1a1a1a;border:1px solid #333;border-radius:8px;font-family:monospace;font-size:0.7rem;color:#0f0;max-height:200px;overflow-y:auto;word-break:break-all;"></div>
+  </div>
 </main>
 
 <script>
@@ -447,11 +449,31 @@
 
   // ── Debug ──
   const debugEl = document.getElementById('debugPanel');
+  const copyDebugBtn = document.getElementById('copyDebugBtn');
   function dbg(msg) {
     const t = new Date().toLocaleTimeString();
     debugEl.innerHTML += `<div>[${t}] ${msg}</div>`;
     debugEl.scrollTop = debugEl.scrollHeight;
   }
+  copyDebugBtn.addEventListener('click', () => {
+    const text = debugEl.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      copyDebugBtn.textContent = 'Copied!';
+      setTimeout(() => { copyDebugBtn.textContent = 'Copy'; }, 1500);
+    }).catch(() => {
+      // Fallback for iOS
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      copyDebugBtn.textContent = 'Copied!';
+      setTimeout(() => { copyDebugBtn.textContent = 'Copy'; }, 1500);
+    });
+  });
 
   // ── Camera ──
   let currentDeviceId = null;
