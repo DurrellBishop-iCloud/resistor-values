@@ -29,16 +29,8 @@
     text-align: center;
     padding: 16px 16px 8px;
   }
-  header h1 {
-    font-size: 1.3rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-  header p {
-    font-size: 0.8rem;
-    color: var(--text-dim);
-    margin-top: 2px;
-  }
+  header h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em; }
+  header p { font-size: 0.8rem; color: var(--text-dim); margin-top: 2px; }
 
   main {
     max-width: 500px;
@@ -54,7 +46,7 @@
     background: #000;
     border-radius: var(--radius);
     overflow: hidden;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
   }
 
   .camera-container video {
@@ -70,7 +62,6 @@
     pointer-events: none;
   }
 
-  /* Dark overlay with clear strip */
   .overlay-top, .overlay-bottom {
     position: absolute;
     left: 0; right: 0;
@@ -88,7 +79,6 @@
   .overlay-left { left: 0; width: 10%; }
   .overlay-right { right: 0; width: 10%; }
 
-  /* Guide strip */
   .guide-strip {
     position: absolute;
     top: 42%;
@@ -97,6 +87,7 @@
     height: 16%;
     border: 2px solid rgba(255, 255, 255, 0.7);
     border-radius: 6px;
+    overflow: hidden;
   }
 
   .guide-strip .corner {
@@ -105,6 +96,7 @@
     height: 14px;
     border-color: #fff;
     border-style: solid;
+    z-index: 2;
   }
   .corner.tl { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
   .corner.tr { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
@@ -121,6 +113,16 @@
     white-space: nowrap;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+    z-index: 2;
+  }
+
+  /* Barcode canvas inside the guide strip */
+  #barcodeCanvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.85;
   }
 
   .camera-placeholder {
@@ -135,22 +137,42 @@
     text-align: center;
     padding: 20px;
   }
-  .camera-placeholder svg {
-    width: 48px;
-    height: 48px;
-    opacity: 0.5;
+  .camera-placeholder svg { width: 48px; height: 48px; opacity: 0.5; }
+
+  /* Capture Button */
+  .capture-btn {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    margin-bottom: 12px;
+  }
+  .capture-btn.live {
+    background: var(--accent);
+    color: #fff;
+  }
+  .capture-btn.live:active { transform: scale(0.97); opacity: 0.9; }
+  .capture-btn.captured {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.15);
   }
 
-  /* Band Type Toggle */
-  .band-toggle {
+  /* Toggle buttons shared style */
+  .toggle-row {
     display: flex;
     gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     background: var(--surface);
     border-radius: var(--radius);
     padding: 4px;
   }
-  .band-toggle button {
+  .toggle-row button {
     flex: 1;
     padding: 10px;
     border: none;
@@ -162,7 +184,7 @@
     cursor: pointer;
     transition: all 0.2s;
   }
-  .band-toggle button.active {
+  .toggle-row button.active {
     background: var(--surface2);
     color: #fff;
   }
@@ -217,9 +239,7 @@
     justify-content: center;
     -webkit-tap-highlight-color: transparent;
   }
-  .color-circle:active {
-    transform: scale(0.9);
-  }
+  .color-circle:active { transform: scale(0.9); }
   .color-circle.selected {
     border-color: #fff;
     box-shadow: 0 0 0 2px var(--accent), 0 2px 8px rgba(233,69,96,0.4);
@@ -233,16 +253,24 @@
     color: var(--text-dim);
     white-space: nowrap;
   }
-  .color-circle.selected .color-label {
-    display: block;
-  }
-
-  /* None/no-band circle */
+  .color-circle.selected .color-label { display: block; }
   .color-circle.none-band {
     border: 3px dashed var(--text-dim);
     background: transparent !important;
     font-size: 0.65rem;
     color: var(--text-dim);
+  }
+
+  /* Detected colors indicator */
+  .detected-tag {
+    display: inline-block;
+    font-size: 0.55rem;
+    background: var(--accent);
+    color: #fff;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
   }
 
   /* Resistor Diagram */
@@ -256,12 +284,7 @@
     align-items: center;
     min-height: 70px;
   }
-
-  .resistor-svg {
-    width: 100%;
-    max-width: 320px;
-    height: 60px;
-  }
+  .resistor-svg { width: 100%; max-width: 320px; height: 60px; }
 
   /* Result Display */
   .result-display {
@@ -276,24 +299,11 @@
     justify-content: center;
     gap: 4px;
   }
-  .result-display.has-value {
-    border: 1px solid var(--surface2);
-  }
-  .result-main {
-    font-size: 1.8rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-  .result-raw {
-    font-size: 0.9rem;
-    color: var(--text-dim);
-  }
-  .result-placeholder {
-    color: var(--text-dim);
-    font-size: 0.9rem;
-  }
+  .result-display.has-value { border: 1px solid var(--surface2); }
+  .result-main { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; }
+  .result-raw { font-size: 0.9rem; color: var(--text-dim); }
+  .result-placeholder { color: var(--text-dim); font-size: 0.9rem; }
 
-  /* Reset Button */
   .reset-btn {
     width: 100%;
     padding: 14px;
@@ -306,27 +316,20 @@
     cursor: pointer;
     transition: all 0.2s;
   }
-  .reset-btn:active {
-    background: var(--surface2);
-    transform: scale(0.98);
-  }
-
-  /* Scrollbar styling */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
+  .reset-btn:active { background: var(--surface2); transform: scale(0.98); }
 </style>
 </head>
 <body>
 <header>
   <h1>Resistor Value Reader</h1>
-  <p>Line up resistor, pick the band colors</p>
+  <p>Line up resistor, then capture to read</p>
 </header>
 
 <main>
   <!-- Camera Feed -->
   <div class="camera-container">
     <video id="cameraFeed" autoplay playsinline muted></video>
+    <canvas id="hiddenCanvas" style="display:none"></canvas>
     <div class="camera-placeholder" id="cameraPlaceholder">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
@@ -339,7 +342,8 @@
       <div class="overlay-bottom"></div>
       <div class="overlay-left"></div>
       <div class="overlay-right"></div>
-      <div class="guide-strip">
+      <div class="guide-strip" id="guideStrip">
+        <canvas id="barcodeCanvas"></canvas>
         <div class="corner tl"></div>
         <div class="corner tr"></div>
         <div class="corner bl"></div>
@@ -349,11 +353,14 @@
     </div>
   </div>
 
+  <!-- Capture / Re-scan Button -->
+  <button class="capture-btn live" id="captureBtn">Capture &amp; Analyze</button>
+
   <!-- Lens Picker -->
-  <div class="band-toggle" id="lensPicker" style="display:none; margin-bottom:8px;"></div>
+  <div class="toggle-row" id="lensPicker" style="display:none"></div>
 
   <!-- Band Type Toggle -->
-  <div class="band-toggle">
+  <div class="toggle-row">
     <button class="active" data-bands="4">4-Band</button>
     <button data-bands="5">5-Band</button>
   </div>
@@ -366,7 +373,7 @@
 
   <!-- Result Display -->
   <div class="result-display" id="resultDisplay">
-    <span class="result-placeholder">Select band colors to see the value</span>
+    <span class="result-placeholder">Capture a resistor to read its value</span>
   </div>
 
   <!-- Reset -->
@@ -380,57 +387,63 @@
 (function() {
   'use strict';
 
-  // ── Color definitions ──
-  const DIGIT_COLORS = [
-    { name: 'Black',  value: 0, bg: '#111',    text: '#fff' },
-    { name: 'Brown',  value: 1, bg: '#8B4513', text: '#fff' },
-    { name: 'Red',    value: 2, bg: '#e53935', text: '#fff' },
-    { name: 'Orange', value: 3, bg: '#FF8C00', text: '#000' },
-    { name: 'Yellow', value: 4, bg: '#FFD600', text: '#000' },
-    { name: 'Green',  value: 5, bg: '#43A047', text: '#fff' },
-    { name: 'Blue',   value: 6, bg: '#1E88E5', text: '#fff' },
-    { name: 'Violet', value: 7, bg: '#8E24AA', text: '#fff' },
-    { name: 'Grey',   value: 8, bg: '#757575', text: '#fff' },
-    { name: 'White',  value: 9, bg: '#f5f5f5', text: '#000' },
+  // ── Color definitions with HSL ranges for detection ──
+  // Each has: name, resistor value, display bg, and HSL matching ranges
+  const BAND_COLORS = [
+    { name: 'Black',  digit: 0, mult: 1,    bg: '#111',    hsl: { hRange: [0,360], sRange: [0,20],  lRange: [0,15] } },
+    { name: 'Brown',  digit: 1, mult: 10,   bg: '#8B4513', hsl: { hRange: [10,40], sRange: [20,80], lRange: [15,40] } },
+    { name: 'Red',    digit: 2, mult: 100,  bg: '#e53935', hsl: { hRange: [345,20], sRange: [40,100], lRange: [30,60] } }, // wraps around 0
+    { name: 'Orange', digit: 3, mult: 1e3,  bg: '#FF8C00', hsl: { hRange: [20,45],  sRange: [60,100], lRange: [40,70] } },
+    { name: 'Yellow', digit: 4, mult: 1e4,  bg: '#FFD600', hsl: { hRange: [45,70],  sRange: [50,100], lRange: [50,85] } },
+    { name: 'Green',  digit: 5, mult: 1e5,  bg: '#43A047', hsl: { hRange: [80,165], sRange: [25,100], lRange: [20,60] } },
+    { name: 'Blue',   digit: 6, mult: 1e6,  bg: '#1E88E5', hsl: { hRange: [190,260],sRange: [30,100], lRange: [25,60] } },
+    { name: 'Violet', digit: 7, mult: 1e7,  bg: '#8E24AA', hsl: { hRange: [260,310],sRange: [20,100], lRange: [20,55] } },
+    { name: 'Grey',   digit: 8, mult: null, bg: '#757575', hsl: { hRange: [0,360], sRange: [0,15],   lRange: [30,65] } },
+    { name: 'White',  digit: 9, mult: null, bg: '#f5f5f5', hsl: { hRange: [0,360], sRange: [0,25],   lRange: [75,100] } },
+    { name: 'Gold',   digit: null, mult: 0.1,  bg: '#CFB53B', hsl: { hRange: [35,55], sRange: [30,80], lRange: [40,65] } },
+    { name: 'Silver', digit: null, mult: 0.01, bg: '#C0C0C0', hsl: { hRange: [0,360], sRange: [0,15], lRange: [65,85] } },
   ];
 
-  const MULTIPLIER_COLORS = [
-    { name: 'Black',  mult: 1,        bg: '#111',    text: '#fff', label: '1 \u03A9' },
-    { name: 'Brown',  mult: 10,       bg: '#8B4513', text: '#fff', label: '10 \u03A9' },
-    { name: 'Red',    mult: 100,      bg: '#e53935', text: '#fff', label: '100 \u03A9' },
-    { name: 'Orange', mult: 1e3,      bg: '#FF8C00', text: '#000', label: '1 k\u03A9' },
-    { name: 'Yellow', mult: 1e4,      bg: '#FFD600', text: '#000', label: '10 k\u03A9' },
-    { name: 'Green',  mult: 1e5,      bg: '#43A047', text: '#fff', label: '100 k\u03A9' },
-    { name: 'Blue',   mult: 1e6,      bg: '#1E88E5', text: '#fff', label: '1 M\u03A9' },
-    { name: 'Violet', mult: 1e7,      bg: '#8E24AA', text: '#fff', label: '10 M\u03A9' },
-    { name: 'Gold',   mult: 0.1,      bg: '#CFB53B', text: '#000', label: '0.1 \u03A9' },
-    { name: 'Silver', mult: 0.01,     bg: '#C0C0C0', text: '#000', label: '0.01 \u03A9' },
-  ];
+  const TOLERANCE_MAP = {
+    'Brown': 1, 'Red': 2, 'Green': 0.5, 'Blue': 0.25,
+    'Violet': 0.1, 'Gold': 5, 'Silver': 10, 'None': 20
+  };
 
+  const DIGIT_COLORS = BAND_COLORS.filter(c => c.digit !== null);
+  const MULTIPLIER_COLORS = BAND_COLORS.filter(c => c.mult !== null);
   const TOLERANCE_COLORS = [
-    { name: 'Brown',  tol: 1,    bg: '#8B4513', text: '#fff', label: '\u00B11%' },
-    { name: 'Red',    tol: 2,    bg: '#e53935', text: '#fff', label: '\u00B12%' },
-    { name: 'Green',  tol: 0.5,  bg: '#43A047', text: '#fff', label: '\u00B10.5%' },
-    { name: 'Blue',   tol: 0.25, bg: '#1E88E5', text: '#fff', label: '\u00B10.25%' },
-    { name: 'Violet', tol: 0.1,  bg: '#8E24AA', text: '#fff', label: '\u00B10.1%' },
-    { name: 'Gold',   tol: 5,    bg: '#CFB53B', text: '#000', label: '\u00B15%' },
-    { name: 'Silver', tol: 10,   bg: '#C0C0C0', text: '#000', label: '\u00B110%' },
-    { name: 'None',   tol: 20,   bg: null,      text: '#999', label: '\u00B120%' },
+    { name: 'Brown',  tol: 1,    bg: '#8B4513' },
+    { name: 'Red',    tol: 2,    bg: '#e53935' },
+    { name: 'Green',  tol: 0.5,  bg: '#43A047' },
+    { name: 'Blue',   tol: 0.25, bg: '#1E88E5' },
+    { name: 'Violet', tol: 0.1,  bg: '#8E24AA' },
+    { name: 'Gold',   tol: 5,    bg: '#CFB53B' },
+    { name: 'Silver', tol: 10,   bg: '#C0C0C0' },
+    { name: 'None',   tol: 20,   bg: null },
   ];
 
   // ── State ──
   let bandCount = 4;
-  let selections = {}; // { band0: index, band1: index, ... }
+  let selections = {};
+  let isCaptured = false;
+  let animFrameId = null;
 
   // ── DOM refs ──
   const video = document.getElementById('cameraFeed');
+  const hiddenCanvas = document.getElementById('hiddenCanvas');
+  const hiddenCtx = hiddenCanvas.getContext('2d', { willReadFrequently: true });
+  const barcodeCanvas = document.getElementById('barcodeCanvas');
+  const barcodeCtx = barcodeCanvas.getContext('2d');
   const placeholder = document.getElementById('cameraPlaceholder');
   const overlay = document.getElementById('cameraOverlay');
+  const guideStrip = document.getElementById('guideStrip');
+  const captureBtn = document.getElementById('captureBtn');
   const selectorsEl = document.getElementById('bandSelectors');
   const diagramEl = document.getElementById('resistorDiagram');
   const resultEl = document.getElementById('resultDisplay');
   const resetBtn = document.getElementById('resetBtn');
-  const toggleBtns = document.querySelectorAll('.band-toggle button');
+  const toggleBtns = document.querySelectorAll('.toggle-row button[data-bands]');
+  const lensPickerEl = document.getElementById('lensPicker');
 
   // ── Debug ──
   const debugEl = document.getElementById('debugPanel');
@@ -441,45 +454,30 @@
   }
 
   // ── Camera ──
-  const lensPickerEl = document.getElementById('lensPicker');
   let currentDeviceId = null;
   let allCameras = [];
 
   dbg('Page loaded. UA: ' + navigator.userAgent.slice(0, 80));
   dbg('Secure context: ' + window.isSecureContext);
-  dbg('mediaDevices: ' + !!navigator.mediaDevices);
-  dbg('getUserMedia: ' + !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
 
   async function applyMacroFocus(stream) {
     const track = stream.getVideoTracks()[0];
-    if (!track.getCapabilities) {
-      dbg('getCapabilities not supported');
-      return;
-    }
+    if (!track.getCapabilities) { dbg('getCapabilities not supported'); return; }
     const caps = track.getCapabilities();
     dbg('Focus modes: ' + JSON.stringify(caps.focusMode || 'n/a'));
-    dbg('Focus distance: ' + JSON.stringify(caps.focusDistance || 'n/a'));
-
+    dbg('Focus dist: ' + JSON.stringify(caps.focusDistance || 'n/a'));
     const constraints = {};
-
     if (caps.focusDistance) {
       const minDist = caps.focusDistance.min;
-      const macroDist = Math.max(minDist, minDist + (caps.focusDistance.max - minDist) * 0.02);
       constraints.focusMode = 'manual';
-      constraints.focusDistance = macroDist;
-      dbg('Setting macro focus: mode=manual, dist=' + macroDist.toFixed(3) + ' (min=' + minDist + ')');
+      constraints.focusDistance = minDist + (caps.focusDistance.max - minDist) * 0.02;
+      dbg('Macro focus: ' + constraints.focusDistance.toFixed(3));
     } else if (caps.focusMode && caps.focusMode.includes('continuous')) {
       constraints.focusMode = 'continuous';
-      dbg('No focusDistance support, using continuous AF');
     }
-
-    if (Object.keys(constraints).length > 0) {
-      try {
-        await track.applyConstraints({ advanced: [constraints] });
-        dbg('Focus constraints applied OK');
-      } catch (e) {
-        dbg('Focus apply failed: ' + e.message);
-      }
+    if (Object.keys(constraints).length) {
+      try { await track.applyConstraints({ advanced: [constraints] }); dbg('Focus applied'); }
+      catch (e) { dbg('Focus failed: ' + e.message); }
     }
   }
 
@@ -487,12 +485,10 @@
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       allCameras = devices.filter(d => d.kind === 'videoinput');
-      dbg('Found ' + allCameras.length + ' cameras:');
-      allCameras.forEach((c, i) => dbg('  [' + i + '] ' + (c.label || 'Camera ' + i) + ' id=' + c.deviceId.slice(0, 12) + '...'));
+      dbg('Cameras: ' + allCameras.length);
+      allCameras.forEach((c, i) => dbg('  [' + i + '] ' + (c.label || 'Cam ' + i)));
 
-      // Find the ultra-wide (macro) camera
       let macroIdx = allCameras.findIndex(c => /ultra.?wide/i.test(c.label));
-      if (macroIdx === -1) macroIdx = allCameras.findIndex(c => /0\.5/i.test(c.label));
 
       if (allCameras.length > 1) {
         lensPickerEl.style.display = 'flex';
@@ -500,15 +496,11 @@
         allCameras.forEach((cam, i) => {
           const btn = document.createElement('button');
           const label = cam.label || ('Camera ' + i);
-          let shortLabel = label;
-          if (/ultra/i.test(label)) shortLabel = 'Macro (UW)';
-          else if (/tele/i.test(label)) shortLabel = 'Telephoto';
-          else if (/wide/i.test(label) && !/ultra/i.test(label)) shortLabel = 'Wide';
-          else if (/front/i.test(label)) shortLabel = 'Front';
-          else if (/back/i.test(label) || /rear/i.test(label) || /environment/i.test(label)) shortLabel = 'Back ' + i;
-          else shortLabel = 'Lens ' + i;
-
-          btn.textContent = shortLabel;
+          if (/ultra/i.test(label)) btn.textContent = 'Macro (UW)';
+          else if (/tele/i.test(label)) btn.textContent = 'Tele';
+          else if (/wide/i.test(label) && !/ultra/i.test(label)) btn.textContent = 'Wide';
+          else if (/front/i.test(label)) btn.textContent = 'Front';
+          else btn.textContent = 'Lens ' + i;
           btn.title = label;
           if (cam.deviceId === currentDeviceId) btn.classList.add('active');
           btn.addEventListener('click', () => switchToCamera(cam.deviceId));
@@ -516,14 +508,11 @@
         });
       }
 
-      // Auto-switch to ultra-wide/macro if we're not already on it
       if (macroIdx !== -1 && allCameras[macroIdx].deviceId !== currentDeviceId) {
-        dbg('Auto-switching to macro lens (ultra wide)...');
+        dbg('Auto-switching to macro lens...');
         await switchToCamera(allCameras[macroIdx].deviceId);
       }
-    } catch (e) {
-      dbg('enumerateDevices failed: ' + e.message);
-    }
+    } catch (e) { dbg('enumerate failed: ' + e.message); }
   }
 
   function stopCurrentStream() {
@@ -534,82 +523,335 @@
   }
 
   async function switchToCamera(deviceId) {
-    dbg('Switching to camera: ' + (deviceId ? deviceId.slice(0, 12) + '...' : 'default'));
+    dbg('Switch to: ' + (deviceId || 'default').slice(0, 12));
     stopCurrentStream();
     currentDeviceId = deviceId;
     try {
-      const constraints = {
-        video: {
-          deviceId: { exact: deviceId },
-          width: { ideal: 1280 },
-          height: { ideal: 960 }
-        }
-      };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      dbg('Switched OK: ' + stream.getVideoTracks()[0].label);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 960 } }
+      });
       video.srcObject = stream;
       placeholder.style.display = 'none';
       overlay.style.display = 'block';
       await applyMacroFocus(stream);
-      // Update active button
-      lensPickerEl.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
-      allCameras.forEach((cam, i) => {
-        if (cam.deviceId === deviceId) lensPickerEl.children[i]?.classList.add('active');
-      });
-    } catch (e) {
-      dbg('Switch failed: ' + e.name + ': ' + e.message);
-    }
+      lensPickerEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      allCameras.forEach((c, i) => { if (c.deviceId === deviceId) lensPickerEl.children[i]?.classList.add('active'); });
+      if (!isCaptured) startBarcodeLoop();
+    } catch (e) { dbg('Switch failed: ' + e.message); }
   }
 
   async function startCamera() {
-    dbg('startCamera() called');
+    dbg('startCamera()');
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      dbg('ERROR: getUserMedia not available');
       placeholder.querySelector('span').textContent = 'Camera API not available';
       return;
     }
     try {
-      dbg('Requesting camera (environment)...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 960 } }
       });
       const track = stream.getVideoTracks()[0];
       currentDeviceId = track.getSettings().deviceId || null;
-      dbg('Got stream: ' + track.label + ' (id=' + (currentDeviceId || '?').slice(0, 12) + '...)');
+      dbg('Got: ' + track.label);
       video.srcObject = stream;
-      video.onloadedmetadata = () => dbg('Video metadata loaded: ' + video.videoWidth + 'x' + video.videoHeight);
-      video.onplay = () => dbg('Video playing');
       placeholder.style.display = 'none';
       overlay.style.display = 'block';
-      dbg('Camera started OK');
       await applyMacroFocus(stream);
-      // Now enumerate all cameras (needs permission first)
       await enumerateCameras();
+      startBarcodeLoop();
     } catch (err) {
-      dbg('First attempt failed: ' + err.name + ': ' + err.message);
+      dbg('Failed: ' + err.message);
       try {
-        dbg('Retrying with basic constraints...');
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        currentDeviceId = stream.getVideoTracks()[0].getSettings().deviceId || null;
-        dbg('Got stream (fallback): ' + stream.getVideoTracks()[0].label);
         video.srcObject = stream;
-        video.onloadedmetadata = () => dbg('Video metadata loaded: ' + video.videoWidth + 'x' + video.videoHeight);
-        video.onplay = () => dbg('Video playing');
         placeholder.style.display = 'none';
         overlay.style.display = 'block';
-        dbg('Camera started OK (fallback)');
-        await applyMacroFocus(stream);
         await enumerateCameras();
+        startBarcodeLoop();
       } catch (e) {
-        dbg('BOTH attempts failed: ' + e.name + ': ' + e.message);
-        placeholder.querySelector('span').textContent = 'Camera not available \u2014 you can still pick colors below';
+        placeholder.querySelector('span').textContent = 'Camera not available';
       }
     }
   }
 
-  placeholder.addEventListener('click', () => { dbg('Placeholder tapped'); startCamera(); });
-  // Auto-start on all devices
+  placeholder.addEventListener('click', startCamera);
   startCamera();
+
+  // ── Live Barcode Effect ──
+  // Sample center row of the guide strip region from the video,
+  // then repeat it vertically to fill the strip = live barcode
+  function startBarcodeLoop() {
+    if (animFrameId) cancelAnimationFrame(animFrameId);
+
+    function loop() {
+      if (isCaptured) return;
+      if (video.readyState >= 2) {
+        drawBarcode();
+      }
+      animFrameId = requestAnimationFrame(loop);
+    }
+    animFrameId = requestAnimationFrame(loop);
+  }
+
+  function drawBarcode() {
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (!vw || !vh) return;
+
+    // Guide strip region in video coordinates
+    // Strip is at: top 42%, height 16%, left 10%, right 10%
+    const stripTop = Math.floor(vh * 0.42);
+    const stripH = Math.floor(vh * 0.16);
+    const stripLeft = Math.floor(vw * 0.10);
+    const stripW = Math.floor(vw * 0.80);
+    const centerY = stripTop + Math.floor(stripH / 2);
+
+    // Draw full frame to hidden canvas
+    hiddenCanvas.width = vw;
+    hiddenCanvas.height = vh;
+    hiddenCtx.drawImage(video, 0, 0, vw, vh);
+
+    // Sample one horizontal row of pixels from center of strip
+    const rowData = hiddenCtx.getImageData(stripLeft, centerY, stripW, 1);
+
+    // Size barcode canvas to match the guide strip element
+    const rect = guideStrip.getBoundingClientRect();
+    const cw = Math.floor(rect.width);
+    const ch = Math.floor(rect.height);
+    if (cw < 1 || ch < 1) return;
+
+    if (barcodeCanvas.width !== cw || barcodeCanvas.height !== ch) {
+      barcodeCanvas.width = cw;
+      barcodeCanvas.height = ch;
+    }
+
+    // Draw the single row stretched vertically to fill the strip
+    // Create a 1-pixel-high ImageData from the sampled row, put it, then stretch
+    const oneRow = barcodeCtx.createImageData(cw, 1);
+    // Resample the row to fit canvas width
+    for (let x = 0; x < cw; x++) {
+      const srcX = Math.floor(x * stripW / cw);
+      const si = srcX * 4;
+      const di = x * 4;
+      oneRow.data[di]     = rowData.data[si];
+      oneRow.data[di + 1] = rowData.data[si + 1];
+      oneRow.data[di + 2] = rowData.data[si + 2];
+      oneRow.data[di + 3] = 255;
+    }
+
+    // Put the row at y=0, then draw it stretched to full height
+    barcodeCtx.putImageData(oneRow, 0, 0);
+    barcodeCtx.drawImage(barcodeCanvas, 0, 0, cw, 1, 0, 0, cw, ch);
+  }
+
+  // ── Capture & Analyze ──
+  captureBtn.addEventListener('click', () => {
+    if (!isCaptured) {
+      capture();
+    } else {
+      resumeLive();
+    }
+  });
+
+  function capture() {
+    if (!video.srcObject) return;
+    isCaptured = true;
+    if (animFrameId) cancelAnimationFrame(animFrameId);
+
+    captureBtn.textContent = 'Re-scan';
+    captureBtn.classList.remove('live');
+    captureBtn.classList.add('captured');
+
+    // Freeze: draw current barcode one last time then analyze
+    drawBarcode();
+    video.pause();
+
+    dbg('Captured! Analyzing...');
+    analyzeBarcode();
+  }
+
+  function resumeLive() {
+    isCaptured = false;
+    video.play();
+    captureBtn.textContent = 'Capture & Analyze';
+    captureBtn.classList.remove('captured');
+    captureBtn.classList.add('live');
+    selections = {};
+    renderSelectors();
+    updateResult();
+    startBarcodeLoop();
+  }
+
+  // ── Color Analysis ──
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    if (max === min) {
+      h = s = 0;
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+        case g: h = ((b - r) / d + 2) / 6; break;
+        case b: h = ((r - g) / d + 4) / 6; break;
+      }
+    }
+    return [h * 360, s * 100, l * 100];
+  }
+
+  function matchColor(r, g, b) {
+    const [h, s, l] = rgbToHsl(r, g, b);
+    let bestMatch = null;
+    let bestScore = Infinity;
+
+    for (const color of BAND_COLORS) {
+      const hr = color.hsl.hRange;
+      const sr = color.hsl.sRange;
+      const lr = color.hsl.lRange;
+
+      // Check if HSL falls within range (handle hue wrapping for red)
+      let hMatch;
+      if (hr[0] > hr[1]) {
+        // Wraps around (e.g., red: 345-20)
+        hMatch = h >= hr[0] || h <= hr[1];
+      } else {
+        hMatch = h >= hr[0] && h <= hr[1];
+      }
+      const sMatch = s >= sr[0] && s <= sr[1];
+      const lMatch = l >= lr[0] && l <= lr[1];
+
+      if (hMatch && sMatch && lMatch) {
+        // Score by distance to center of ranges
+        const hCenter = hr[0] > hr[1] ? ((hr[0] + hr[1] + 360) / 2) % 360 : (hr[0] + hr[1]) / 2;
+        let hDist = Math.abs(h - hCenter);
+        if (hDist > 180) hDist = 360 - hDist;
+        const sDist = Math.abs(s - (sr[0] + sr[1]) / 2);
+        const lDist = Math.abs(l - (lr[0] + lr[1]) / 2);
+        const score = hDist + sDist + lDist;
+        if (score < bestScore) {
+          bestScore = score;
+          bestMatch = color;
+        }
+      }
+    }
+    return bestMatch;
+  }
+
+  function analyzeBarcode() {
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (!vw || !vh) { dbg('No video data'); return; }
+
+    const stripLeft = Math.floor(vw * 0.10);
+    const stripW = Math.floor(vw * 0.80);
+    const centerY = Math.floor(vh * 0.42 + vh * 0.08); // center of strip
+
+    // Sample a few rows around center for robustness and average
+    const sampleRows = 5;
+    const pixels = [];
+    for (let x = 0; x < stripW; x++) {
+      let rSum = 0, gSum = 0, bSum = 0;
+      for (let dy = -2; dy <= 2; dy++) {
+        const data = hiddenCtx.getImageData(stripLeft + x, centerY + dy, 1, 1).data;
+        rSum += data[0]; gSum += data[1]; bSum += data[2];
+      }
+      pixels.push([
+        Math.round(rSum / sampleRows),
+        Math.round(gSum / sampleRows),
+        Math.round(bSum / sampleRows)
+      ]);
+    }
+
+    // Classify each pixel
+    const colorLabels = pixels.map(([r, g, b]) => {
+      const match = matchColor(r, g, b);
+      return match ? match.name : '?';
+    });
+
+    dbg('Pixel colors (sampled): ' + colorLabels.filter((_, i) => i % 20 === 0).join(','));
+
+    // Find runs of consistent color (bands)
+    const runs = [];
+    let currentRun = { color: colorLabels[0], start: 0, count: 1 };
+    for (let i = 1; i < colorLabels.length; i++) {
+      if (colorLabels[i] === currentRun.color) {
+        currentRun.count++;
+      } else {
+        runs.push(currentRun);
+        currentRun = { color: colorLabels[i], start: i, count: 1 };
+      }
+    }
+    runs.push(currentRun);
+
+    dbg('Runs: ' + runs.map(r => r.color + '(' + r.count + ')').join(', '));
+
+    // Filter out tiny noise runs (less than 2% of strip width) and the resistor body color
+    const minRunWidth = Math.floor(stripW * 0.02);
+    const significantRuns = runs.filter(r => r.count >= minRunWidth);
+
+    dbg('Significant runs: ' + significantRuns.map(r => r.color + '(' + r.count + ')').join(', '));
+
+    // Find the body color (usually the most common non-band color, typically brown/tan/beige)
+    // Bands are the colored stripes that are NOT the body
+    // Strategy: the body color will likely be the longest total run
+    const colorTotals = {};
+    significantRuns.forEach(r => {
+      colorTotals[r.color] = (colorTotals[r.color] || 0) + r.count;
+    });
+
+    // Sort by total pixels descending - most common is likely the body
+    const sortedColors = Object.entries(colorTotals).sort((a, b) => b[1] - a[1]);
+    const bodyColor = sortedColors.length > 0 ? sortedColors[0][0] : null;
+    dbg('Likely body color: ' + bodyColor);
+
+    // Bands are everything that's NOT the body color, in order
+    const detectedBands = significantRuns
+      .filter(r => r.color !== bodyColor && r.color !== '?')
+      .map(r => r.color);
+
+    dbg('Detected bands: ' + detectedBands.join(', '));
+
+    if (detectedBands.length < 3) {
+      dbg('Not enough bands detected (' + detectedBands.length + '). Try adjusting alignment.');
+      resultEl.innerHTML = '<span class="result-placeholder">Could not detect enough bands. Adjust and try again.</span>';
+      return;
+    }
+
+    // Map detected colors to band selections
+    applyDetectedBands(detectedBands);
+  }
+
+  function applyDetectedBands(detectedBands) {
+    const config = getBandConfig();
+    const expected = config.length;
+
+    // Take the right number of bands
+    let bands = detectedBands;
+    if (bands.length > expected) {
+      // Take the first N bands
+      bands = bands.slice(0, expected);
+    }
+
+    dbg('Applying ' + bands.length + ' bands (need ' + expected + '): ' + bands.join(', '));
+
+    // Map each detected band to the correct selector index
+    bands.forEach((colorName, i) => {
+      if (i >= config.length) return;
+      const bandCfg = config[i];
+      const colorList = getColorsForType(bandCfg.type);
+      const idx = colorList.findIndex(c => c.name === colorName);
+      if (idx !== -1) {
+        selections[bandCfg.key] = idx;
+      } else {
+        dbg('No match for ' + colorName + ' in ' + bandCfg.type + ' band');
+      }
+    });
+
+    renderSelectors(true);
+    updateResult();
+  }
 
   // ── Band type toggle ──
   toggleBtns.forEach(btn => {
@@ -623,32 +865,38 @@
     });
   });
 
-  // ── Build band selector rows ──
+  // ── Band selector UI ──
   function getBandConfig() {
     if (bandCount === 4) {
       return [
-        { key: 'band0', label: 'Band 1 \u2014 1st Digit',   type: 'digit' },
-        { key: 'band1', label: 'Band 2 \u2014 2nd Digit',   type: 'digit' },
-        { key: 'band2', label: 'Band 3 \u2014 Multiplier',  type: 'multiplier' },
-        { key: 'band3', label: 'Band 4 \u2014 Tolerance',   type: 'tolerance' },
+        { key: 'band0', label: 'Band 1 \u2014 1st Digit',  type: 'digit' },
+        { key: 'band1', label: 'Band 2 \u2014 2nd Digit',  type: 'digit' },
+        { key: 'band2', label: 'Band 3 \u2014 Multiplier', type: 'multiplier' },
+        { key: 'band3', label: 'Band 4 \u2014 Tolerance',  type: 'tolerance' },
       ];
     }
     return [
-      { key: 'band0', label: 'Band 1 \u2014 1st Digit',   type: 'digit' },
-      { key: 'band1', label: 'Band 2 \u2014 2nd Digit',   type: 'digit' },
-      { key: 'band2', label: 'Band 3 \u2014 3rd Digit',   type: 'digit' },
-      { key: 'band3', label: 'Band 4 \u2014 Multiplier',  type: 'multiplier' },
-      { key: 'band4', label: 'Band 5 \u2014 Tolerance',   type: 'tolerance' },
+      { key: 'band0', label: 'Band 1 \u2014 1st Digit',  type: 'digit' },
+      { key: 'band1', label: 'Band 2 \u2014 2nd Digit',  type: 'digit' },
+      { key: 'band2', label: 'Band 3 \u2014 3rd Digit',  type: 'digit' },
+      { key: 'band3', label: 'Band 4 \u2014 Multiplier', type: 'multiplier' },
+      { key: 'band4', label: 'Band 5 \u2014 Tolerance',  type: 'tolerance' },
     ];
   }
 
   function getColorsForType(type) {
-    if (type === 'digit')      return DIGIT_COLORS;
-    if (type === 'multiplier') return MULTIPLIER_COLORS;
+    if (type === 'digit') return DIGIT_COLORS.map(c => ({ name: c.name, value: c.digit, bg: c.bg }));
+    if (type === 'multiplier') return MULTIPLIER_COLORS.map(c => {
+      let label;
+      if (c.mult >= 1e6) label = (c.mult/1e6) + ' M\u03A9';
+      else if (c.mult >= 1e3) label = (c.mult/1e3) + ' k\u03A9';
+      else label = c.mult + ' \u03A9';
+      return { name: c.name, mult: c.mult, bg: c.bg, label: '\u00D7' + label };
+    });
     return TOLERANCE_COLORS;
   }
 
-  function renderSelectors() {
+  function renderSelectors(detected) {
     const config = getBandConfig();
     selectorsEl.innerHTML = '';
 
@@ -656,27 +904,27 @@
       const row = document.createElement('div');
       row.className = 'band-row';
 
-      const selectedColor = selections[band.key] !== undefined
-        ? getColorsForType(band.type)[selections[band.key]]
-        : null;
+      const colors = getColorsForType(band.type);
+      const selectedColor = selections[band.key] !== undefined ? colors[selections[band.key]] : null;
       const indicatorBg = selectedColor ? (selectedColor.bg || 'transparent') : 'transparent';
+
+      const detectedTag = detected && selections[band.key] !== undefined
+        ? '<span class="detected-tag">detected</span>' : '';
 
       row.innerHTML = `<div class="band-row-label">
         <span class="band-indicator" style="background:${indicatorBg};${selectedColor ? 'border-color:' + indicatorBg : ''}"></span>
-        ${band.label}
+        ${band.label}${detectedTag}
       </div>`;
 
       const circlesDiv = document.createElement('div');
       circlesDiv.className = 'color-circles';
 
-      const colors = getColorsForType(band.type);
       colors.forEach((color, i) => {
         const circle = document.createElement('button');
         circle.className = 'color-circle';
         if (selections[band.key] === i) circle.classList.add('selected');
 
         if (color.bg === null) {
-          // "None" tolerance
           circle.classList.add('none-band');
           circle.textContent = '\u2205';
         } else {
@@ -685,22 +933,16 @@
 
         const labelEl = document.createElement('span');
         labelEl.className = 'color-label';
-        if (band.type === 'digit') {
-          labelEl.textContent = color.value;
-        } else if (band.type === 'multiplier') {
-          labelEl.textContent = color.label;
-        } else {
-          labelEl.textContent = color.label;
-        }
+        if (band.type === 'digit') labelEl.textContent = color.value;
+        else if (band.type === 'multiplier') labelEl.textContent = color.label;
+        else labelEl.textContent = '\u00B1' + color.tol + '%';
         circle.appendChild(labelEl);
 
-        circle.setAttribute('aria-label', `${color.name}${band.type === 'digit' ? ' (' + color.value + ')' : ''}`);
         circle.addEventListener('click', () => {
           selections[band.key] = i;
           renderSelectors();
           updateResult();
         });
-
         circlesDiv.appendChild(circle);
       });
 
@@ -712,6 +954,7 @@
   // ── Resistor Diagram ──
   function renderDiagram() {
     const config = getBandConfig();
+    const colors = getColorsForType;
     const bandColors = config.map(b => {
       if (selections[b.key] === undefined) return '#444';
       const c = getColorsForType(b.type)[selections[b.key]];
@@ -721,22 +964,15 @@
     const w = 320, h = 60;
     const bodyX = 60, bodyW = 200, bodyH = 36, bodyY = (h - bodyH) / 2;
     const wireY = h / 2;
-
     let svg = `<svg class="resistor-svg" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
-    // Wires
     svg += `<line x1="0" y1="${wireY}" x2="${bodyX}" y2="${wireY}" stroke="#aaa" stroke-width="2.5"/>`;
     svg += `<line x1="${bodyX + bodyW}" y1="${wireY}" x2="${w}" y2="${wireY}" stroke="#aaa" stroke-width="2.5"/>`;
-    // Body
     svg += `<rect x="${bodyX}" y="${bodyY}" width="${bodyW}" height="${bodyH}" rx="6" fill="#D2B48C"/>`;
     svg += `<rect x="${bodyX}" y="${bodyY}" width="${bodyW}" height="${bodyH}" rx="6" fill="none" stroke="#B8956A" stroke-width="1"/>`;
 
-    // Bands
     const n = bandColors.length;
     const bandW = 14;
-    const totalBandSpace = n * bandW;
-    const gapSpace = bodyW - 30 - totalBandSpace; // 15px padding each side
-    const gap = gapSpace / (n - 1);
-
+    const gap = (bodyW - 30 - n * bandW) / (n - 1);
     bandColors.forEach((color, i) => {
       const x = bodyX + 15 + i * (bandW + gap);
       svg += `<rect x="${x}" y="${bodyY + 3}" width="${bandW}" height="${bodyH - 6}" rx="2" fill="${color}" stroke="rgba(0,0,0,0.2)" stroke-width="0.5"/>`;
@@ -758,7 +994,6 @@
 
   function formatRaw(ohms) {
     if (ohms >= 1) {
-      // Show integer if it's a whole number, otherwise up to 2 decimals
       if (Number.isInteger(ohms)) return ohms.toLocaleString() + ' \u03A9';
       return ohms.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' \u03A9';
     }
@@ -767,50 +1002,49 @@
 
   function updateResult() {
     renderDiagram();
-
     const config = getBandConfig();
-    // Check all bands selected
     const allSelected = config.every(b => selections[b.key] !== undefined);
 
     if (!allSelected) {
-      resultEl.innerHTML = '<span class="result-placeholder">Select all band colors to see the value</span>';
+      const count = config.filter(b => selections[b.key] !== undefined).length;
+      if (count > 0) {
+        resultEl.innerHTML = '<span class="result-placeholder">' + count + '/' + config.length + ' bands detected \u2014 select remaining bands</span>';
+      } else {
+        resultEl.innerHTML = '<span class="result-placeholder">Capture a resistor to read its value</span>';
+      }
       resultEl.classList.remove('has-value');
       return;
     }
 
     let digits, multIdx, tolIdx;
+    const digitColors = getColorsForType('digit');
+    const multColors = getColorsForType('multiplier');
+    const tolColors = getColorsForType('tolerance');
+
     if (bandCount === 4) {
-      const d1 = DIGIT_COLORS[selections.band0].value;
-      const d2 = DIGIT_COLORS[selections.band1].value;
-      digits = d1 * 10 + d2;
+      digits = digitColors[selections.band0].value * 10 + digitColors[selections.band1].value;
       multIdx = selections.band2;
       tolIdx = selections.band3;
     } else {
-      const d1 = DIGIT_COLORS[selections.band0].value;
-      const d2 = DIGIT_COLORS[selections.band1].value;
-      const d3 = DIGIT_COLORS[selections.band2].value;
-      digits = d1 * 100 + d2 * 10 + d3;
+      digits = digitColors[selections.band0].value * 100 + digitColors[selections.band1].value * 10 + digitColors[selections.band2].value;
       multIdx = selections.band3;
       tolIdx = selections.band4;
     }
 
-    const mult = MULTIPLIER_COLORS[multIdx].mult;
-    const tol = TOLERANCE_COLORS[tolIdx].tol;
+    const mult = multColors[multIdx].mult;
+    const tol = tolColors[tolIdx].tol;
     const ohms = digits * mult;
 
-    const formatted = formatResistance(ohms);
-    const raw = formatRaw(ohms);
-    const tolStr = '\u00B1' + tol + '%';
-
     resultEl.innerHTML = `
-      <div class="result-main">${formatted} ${tolStr}</div>
-      <div class="result-raw">${raw}</div>
+      <div class="result-main">${formatResistance(ohms)} \u00B1${tol}%</div>
+      <div class="result-raw">${formatRaw(ohms)}</div>
     `;
     resultEl.classList.add('has-value');
   }
 
   // ── Reset ──
   resetBtn.addEventListener('click', () => {
+    if (isCaptured) resumeLive();
     selections = {};
     renderSelectors();
     updateResult();
