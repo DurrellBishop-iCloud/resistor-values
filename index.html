@@ -67,24 +67,24 @@
     left: 0; right: 0;
     background: rgba(0, 0, 0, 0.55);
   }
-  .overlay-top { top: 0; height: 42%; }
-  .overlay-bottom { bottom: 0; height: 42%; }
+  .overlay-top { top: 0; height: 34%; }
+  .overlay-bottom { bottom: 0; height: 34%; }
 
   .overlay-left, .overlay-right {
     position: absolute;
-    top: 42%;
-    height: 16%;
+    top: 34%;
+    height: 32%;
     background: rgba(0, 0, 0, 0.55);
   }
-  .overlay-left { left: 0; width: 10%; }
-  .overlay-right { right: 0; width: 10%; }
+  .overlay-left { left: 0; width: 17%; }
+  .overlay-right { right: 0; width: 17%; }
 
   .guide-strip {
     position: absolute;
-    top: 42%;
-    left: 10%;
-    right: 10%;
-    height: 16%;
+    top: 34%;
+    left: 17%;
+    right: 17%;
+    height: 32%;
     border: 2px solid rgba(255, 255, 255, 0.7);
     border-radius: 6px;
     overflow: hidden;
@@ -672,10 +672,10 @@
 
     // Guide strip region in video coordinates
     // Strip is at: top 42%, height 16%, left 10%, right 10%
-    const stripTop = Math.floor(vh * 0.42);
-    const stripH = Math.floor(vh * 0.16);
-    const stripLeft = Math.floor(vw * 0.10);
-    const stripW = Math.floor(vw * 0.80);
+    const stripTop = Math.floor(vh * 0.34);
+    const stripH = Math.floor(vh * 0.32);
+    const stripLeft = Math.floor(vw * 0.17);
+    const stripW = Math.floor(vw * 0.66);
     const centerY = stripTop + Math.floor(stripH / 2);
 
     // Draw full frame to hidden canvas
@@ -816,9 +816,9 @@
     const vh = video.videoHeight;
     if (!vw || !vh) { dbg('No video data'); return; }
 
-    const stripLeft = Math.floor(vw * 0.10);
-    const stripW = Math.floor(vw * 0.80);
-    const centerY = Math.floor(vh * 0.42 + vh * 0.08); // center of strip
+    const stripLeft = Math.floor(vw * 0.17);
+    const stripW = Math.floor(vw * 0.66);
+    const centerY = Math.floor(vh * 0.34 + vh * 0.16); // center of strip
 
     // Sample a few rows around center for robustness and average
     const sampleRows = 5;
